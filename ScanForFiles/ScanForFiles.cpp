@@ -155,8 +155,8 @@ int _tmain( int argc, TCHAR* argv[], TCHAR* envp[] )
 		}
 	}
 
-	// two arguments expected
-	if ( nArgs != 2 )
+	// two or three arguments expected
+	if ( !( nArgs == 2 || nArgs == 3 ))
 	{
 		fErr.WriteString( _T( ".\n" ) );
 		fErr.WriteString
@@ -182,7 +182,7 @@ int _tmain( int argc, TCHAR* argv[], TCHAR* envp[] )
 			_T( ".\n" )
 			_T( "Usage:\n" )
 			_T( ".\n" )
-			_T( ".  ScanForFiles pathname\n" )
+			_T( ".  ScanForFiles pathname [true]\n" )
 			_T( ".\n" )
 			_T( "Where:\n" )
 			_T( ".\n" )
@@ -191,6 +191,7 @@ int _tmain( int argc, TCHAR* argv[], TCHAR* envp[] )
 		fErr.WriteString
 		(
 			_T( ".  pathname is the root of the tree to be scanned\n" )
+			_T( ".  true is optional to only show duplications\n" )
 			_T( ".\n" )
 			_T( ".  output \"unique_file_name\",\"sub_folder\"\n" )
 			_T( ".\n" )
@@ -209,6 +210,16 @@ int _tmain( int argc, TCHAR* argv[], TCHAR* envp[] )
 
 	// retrieve the pathname
 	CString csPath = arrArgs[ 1 ];
+	m_bDuplicatesOnly = false;
+
+	// optional argument to display duplicates only
+	if ( nArgs == 3 )
+	{
+		if ( arrArgs[ 2 ] == _T( "true" ) )
+		{
+			m_bDuplicatesOnly = true;
+		}
+	}
 
 	// trim off any wild card data
 	const CString csFolder = CHelper::GetFolder( csPath );
@@ -261,6 +272,15 @@ int _tmain( int argc, TCHAR* argv[], TCHAR* envp[] )
 		// loop through the sub-folders where the file was found
 		// and write the pair onto the output separated by a comma
 		vector<CString>* pData = nodeKeys.second;
+
+		// if only outputting duplicates, continue when the count is one
+		const size_t nCount = pData->size();
+		if ( m_bDuplicatesOnly && nCount == 1 )
+		{
+			continue;
+		}
+
+		// generate a line of output
 		for ( auto& nodeData : *pData )
 		{
 			csMessage.Format( _T( "\"%s\",\"%s\"\n" ), nodeKeys.first, nodeData );
