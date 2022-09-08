@@ -55,16 +55,21 @@ void RecursePath( LPCTSTR path )
 		}
 		else // process the file if it is an extension we are interested in
 		{
-			vector<CString> tokens;
 			const CString csPath = finder.GetFilePath();
 			const CString csExt = CHelper::GetExtension( csPath ).MakeLower();
-			const CString csFile = CHelper::GetFileName( csPath );
 			const CString csFolder = CHelper::GetDirectory( csPath );
 			
-			if ( csExt == _T( ".docx" ) || csExt == _T( ".doc" ) )
+			if 
+			( 
+				csExt == _T( ".docx" ) ||
+				csExt == _T( ".doc" ) ||
+				csExt == _T( ".rtf" )
+			)
 			{
+				vector<CString> tokens;
+
 				// parse the sub-folders
-				const CString csDelim( _T( "\\" ) );
+				CString csDelim( _T( "\\" ) );
 				int nStart = 0;
 				CString csToken;
 				do
@@ -76,13 +81,58 @@ void RecursePath( LPCTSTR path )
 					}
 
 					tokens.push_back( csToken );
-
 				}
 				while ( true );
 
 				// the last sub-folder
 				const CString csSub = tokens.back();
 
+				// check for Kindle Create folder and ignore if found
+				const CString csRight = csSub.Right( 3 );
+				if ( csRight == _T( "_KC" ) )
+				{
+					continue;
+				}
+
+				// the name of the document
+				CString csFile = CHelper::GetFileName( csPath );
+
+				// parse the name to remove extra spaces and double quotes
+				tokens.clear();
+
+				// note the curly accent ‘ and ’ as opposed to a 
+				// simple accent '. They are being replaced because 
+				// Excel treats them like a double quote when parsing 
+				// a CSV file
+				csFile.Replace( _T( "‘" ), _T( "'" ));
+				csFile.Replace( _T( "’" ), _T( "'" ));
+				csDelim = _T( "\" " );
+				nStart = 0;
+				do
+				{
+					csToken = csFile.Tokenize( csDelim, nStart );
+					if ( csToken.IsEmpty() )
+					{
+						break;
+					}
+
+					tokens.push_back( csToken );
+				}
+				while ( true );
+
+				// rebuild the filename from the tokens
+				csFile.Empty();
+				for ( auto& node : tokens )
+				{
+					csFile += node;
+					csFile += _T( " " );
+				}
+
+				csFile.TrimRight();
+
+				// add the modified filename to the map or if it already 
+				// exists, update the associated sub-folder array with the
+				// sub-folder
 				vector<CString>* pData = nullptr;
 				if ( m_mapFilenames.Exists[ csFile ] )
 				{
